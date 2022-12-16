@@ -8,7 +8,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Random;
-import java.util.Scanner;
 public class TreasureIslandManager extends JFrame {
 
     public JLabel[][] board;
@@ -16,10 +15,14 @@ public class TreasureIslandManager extends JFrame {
     public ArrayList<Player> players;
     private ArrayList<Thread> playerThreads;
     private ServerSocket serverSocket;
+    private JPanel playerListPanel;
+    private JPanel boardPanel;
 
     public TreasureIslandManager(int width, int height) {
-        setLayout(new GridLayout(width, height));
+        boardPanel = new JPanel();
         board = new JLabel[width][height];
+        boardPanel.setLayout(new GridLayout(width, height));
+        add(boardPanel);
         boardState = new int[width][height];
         players = new ArrayList<>();
         playerThreads = new ArrayList<>();
@@ -28,7 +31,7 @@ public class TreasureIslandManager extends JFrame {
             for (int j = 0; j < height; j++) {
                 board[i][j] = new JLabel("   ");
                 board[i][j].setBorder(BorderFactory.createLineBorder(Color.BLACK));
-                add(board[i][j]);
+                boardPanel.add(board[i][j]);
             }
         }
         // losowanie przeszkód i skarbów na planszy
@@ -39,16 +42,22 @@ public class TreasureIslandManager extends JFrame {
                 if (randNum == 0) {
                     board[i][j].setText("      X ");
                     boardState[i][j] = -1;
-                } else if (randNum == 1) {
+                } else if (randNum == 1 || randNum == 2) {
                     board[i][j].setText("      $ ");
                     boardState[i][j] = 1;
                 }
             }
         }
+        playerListPanel = new JPanel();
+        playerListPanel.setLayout(new BoxLayout(playerListPanel, BoxLayout.Y_AXIS));
+        add(playerListPanel, BorderLayout.SOUTH);
         setTitle("Wyspa skarbów - Zarządca");
         setSize(500, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
+        Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
+        setLocation(dim.width/2-this.getSize().width/2, dim.height/2-this.getSize().height/2);
+
         // inicjalizacja gniazda serwera
         try {
             serverSocket = new ServerSocket(8888);
@@ -61,7 +70,9 @@ public class TreasureIslandManager extends JFrame {
                 playerThread.start();
                 players.add(player);
                 playerThreads.add(playerThread);
+                addPlayer(player);
                 System.out.println("Zarządca: Gracz dołączył!");
+
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -70,6 +81,26 @@ public class TreasureIslandManager extends JFrame {
                 serverSocket.close();
             } catch (IOException e) {
                 e.printStackTrace();
+            }
+        }
+
+    }
+    public void addPlayer(Player player) {
+        JLabel playerLabel = new JLabel(player.getName() + ": " + player.getTreasures() + " skarbów");
+        playerListPanel.add(playerLabel);
+        playerListPanel.revalidate();
+    }
+    public void updatePlayer(Player player) {
+        // find the label for the player
+        for (Component component : playerListPanel.getComponents()) {
+            if (component instanceof JLabel) {
+                JLabel playerLabel = (JLabel) component;
+                if (playerLabel.getText().startsWith(player.getName())) {
+                    // update the label with the player's new score
+                    playerLabel.setText(player.getName() + ": " + player.getTreasures() + " skarbów");
+                    playerListPanel.revalidate();
+                    break;
+                }
             }
         }
     }
@@ -108,30 +139,21 @@ public class TreasureIslandManager extends JFrame {
         }
         return surroundings;
     }
-
+    public void notakeTreasure(Player player) {
+        board[player.getX()][player.getY()].setText("    $/P ");
+        boardState[player.getX()][player.getY()] = 3;
+    }
     public void takeTreasure(Player player) {
-        // sprawdzenie czy w pobliżu gracza jest skarb
-        if (boardState[player.getX()][player.getY()] == 1) {
-            // aktualizacja stanu planszy i liczby skarbów gracza
-            Scanner scanner = new Scanner(System.in);
-            System.out.println("Czy chcesz podnieść skarb ? 0 nie 1 tak");
-            if(scanner.nextInt() == 1){
-                board[player.getX()][player.getY()].setText("      P ");
-                boardState[player.getX()][player.getY()] = 2;
-                player.addTreasure();
-                if (player.getTreasures() >= 5) {
-                    endGame();
-                    JOptionPane.showMessageDialog(this, "Wygrałeś brawo !");
-                    System.exit(0);
-                }
-                System.out.println("Zarządca: Gracz " + player.getName() + " podniósł skarb!");
-                System.out.println("masz juz " + player.getTreasures() + " skarbow ");
-            }
-            else{
-                board[player.getX()][player.getY()].setText("    $/P ");
-                boardState[player.getX()][player.getY()] = 3;
-            }
+        board[player.getX()][player.getY()].setText("      P ");
+        boardState[player.getX()][player.getY()] = 2;
+        player.addTreasure();
+        updatePlayer(player);
+        if (player.getTreasures() >= 5) {
+            endGame();
+            System.exit(0);
         }
+        System.out.println("Zarządca: Gracz " + player.getName() + " podniósł skarb!");
+
     }
 
     public void endGame() {
@@ -173,9 +195,12 @@ class Player implements Runnable {
         }
         // aktualizacja stanu planszy i ustawienie imienia gracza
         manager.board[x][y].setText("      P ");
-        Scanner in = new Scanner(System.in);
-        System.out.print("Zarządca: Podaj imię gracza: ");
-        name = in.nextLine();
+        try {
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            name = in.readLine();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
     public int getX() {
         return x;
@@ -243,7 +268,10 @@ class Player implements Runnable {
                     // wykonanie polecenia podniesienia skarbu
                 } else if (input.equals("take")) {
                     manager.takeTreasure(this);
+                } else if (input.equals("notake")) {
+                    manager.notakeTreasure(this);
                 }
+
             }
         } catch (IOException e) {
             e.printStackTrace();
