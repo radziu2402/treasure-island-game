@@ -7,23 +7,18 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Random;
 
 public class TreasureIslandPlayer extends JFrame {
     private Socket socket;
     private BufferedReader in;
     private PrintWriter out;
-    private int x;
-    private int y;
     private int treasures;
-    private JPanel boardPanel;
-    private JLabel[][] board;
-    private JButton[] buttons;
-    private JLabel treasureCounter;
-    private String playerName;
-    private Timer timer;
+    private final JLabel[][] board;
+    private final JLabel treasureCounter;
 
     public TreasureIslandPlayer() {
-        playerName = JOptionPane.showInputDialog(null, "Wpisz swoje imię:","Gra Wyspa Skarbów",JOptionPane.QUESTION_MESSAGE);
+        String playerName = JOptionPane.showInputDialog(null, "Wpisz swoje imię:", "Gra Wyspa Skarbów", JOptionPane.QUESTION_MESSAGE);
         if(playerName == null){
             System.exit(0);
         }
@@ -42,7 +37,7 @@ public class TreasureIslandPlayer extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         treasureCounter = new JLabel("Ilość skarbów: 0");
         add(treasureCounter);
-        boardPanel = new JPanel();
+        JPanel boardPanel = new JPanel();
         boardPanel.setLayout(new GridLayout(3, 3));
         board = new JLabel[3][3];
         for (int i = 0; i < 3; i++) {
@@ -55,7 +50,7 @@ public class TreasureIslandPlayer extends JFrame {
         }
         add(boardPanel);
         // utworzenie przycisków do poruszania się gracza
-        buttons = new JButton[8];
+        JButton[] buttons = new JButton[8];
         buttons[0] = new JButton("↖");
         buttons[1] = new JButton("↑");
         buttons[2] = new JButton("↗");
@@ -69,27 +64,25 @@ public class TreasureIslandPlayer extends JFrame {
         buttonsPanel.setLayout(new GridLayout(1, 8));
         for (int i = 0; i < 8; i++) {
             final int direction = i;
-            buttons[i].addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    move(direction);
-                    int[][] surroundings = see();
-                    for (int i = 0; i < 3; i++) {
-                        for (int j = 0; j < 3; j++) {
-                            String text;
-                            if (surroundings[i][j] == 0) {
-                                text = " ";
-                            } else if (surroundings[i][j] == 1) {
-                                text = " $ ";
-                            } else if (surroundings[i][j] == -1) {
-                                text = " X ";
-                            } else if (surroundings[i][j] == 2){
-                                text = " P ";
-                            }
-                            else {
-                                text = "    $/P ";
-                            }
-                            board[i][j].setText(text);
+            buttons[i].addActionListener(e -> {
+                move(direction);
+                int[][] surroundings = see();
+                for (int i1 = 0; i1 < 3; i1++) {
+                    for (int j = 0; j < 3; j++) {
+                        String text;
+                        if (surroundings[i1][j] == 0) {
+                            text = " ";
+                        } else if (surroundings[i1][j] == 1) {
+                            text = " $ ";
+                        } else if (surroundings[i1][j] == -1) {
+                            text = " X ";
+                        } else if (surroundings[i1][j] == 2){
+                            text = " P ";
                         }
+                        else {
+                            text = "    $/P ";
+                        }
+                        board[i1][j].setText(text);
                     }
                 }
             });
@@ -100,7 +93,7 @@ public class TreasureIslandPlayer extends JFrame {
         setVisible(true);
         Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
         setLocation(dim.width/2-this.getSize().width/2, dim.height/2-this.getSize().height/2);
-        timer = new Timer(200, new ActionListener() {
+        Timer timer = new Timer(100, new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 refreshBoard();
             }
@@ -187,9 +180,12 @@ public class TreasureIslandPlayer extends JFrame {
     }
     public void decideTake() {
         // pytanie gracza o podjęcie decyzji
+        Random rand = new Random();
+        int delay = rand.nextInt(6) + 1;
+
         int choice = JOptionPane.showConfirmDialog(
                 this,
-                "Czy chcesz podnieść skarb?",
+                "Czy chcesz podnieść skarb? Czas:" + delay + " s",
                 "Podjęcie decyzji",
                 JOptionPane.YES_NO_OPTION);
         if (choice == JOptionPane.YES_OPTION) {
@@ -197,7 +193,7 @@ public class TreasureIslandPlayer extends JFrame {
             out.println("take");
             treasures++;
             try {
-                Thread.sleep(5000);
+                Thread.sleep(delay*1000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }

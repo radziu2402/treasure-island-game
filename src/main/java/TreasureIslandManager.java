@@ -104,22 +104,23 @@ public class TreasureIslandManager extends JFrame {
     }
 
     public void movePlayer(Player player, int x, int y) {
-        // sprawdzenie czy ruch jest możliwy
-        if (x >= 0 && x < board.length && y >= 0 && y < board[0].length && boardState[x][y] != -1 && boardState[x][y] != 2 && boardState[x][y] != 3) {
-            // aktualizacja pozycji gracza na planszy
-            if(boardState[player.getX()][player.getY()] == 3){
-                boardState[player.getX()][player.getY()] = 1;
-                board[player.getX()][player.getY()].setText("      $ ");
-            }
-            else{
-                boardState[player.getX()][player.getY()] = 0;
-                board[player.getX()][player.getY()].setText(" ");
-            }
-            player.setX(x);
-            player.setY(y);
-            if (boardState[x][y] != 1) {
-                board[x][y].setText("      P ");
-                boardState[x][y] = 2;
+        synchronized (TreasureIslandManager.class) {
+            // sprawdzenie czy ruch jest możliwy
+            if (x >= 0 && x < board.length && y >= 0 && y < board[0].length && boardState[x][y] != -1 && boardState[x][y] != 2 && boardState[x][y] != 3) {
+                // aktualizacja pozycji gracza na planszy
+                if (boardState[player.getX()][player.getY()] == 3) {
+                    boardState[player.getX()][player.getY()] = 1;
+                    board[player.getX()][player.getY()].setText("      $ ");
+                } else {
+                    boardState[player.getX()][player.getY()] = 0;
+                    board[player.getX()][player.getY()].setText(" ");
+                }
+                player.setX(x);
+                player.setY(y);
+                if (boardState[x][y] != 1) {
+                    board[x][y].setText("      P ");
+                    boardState[x][y] = 2;
+                }
             }
         }
     }
@@ -237,38 +238,39 @@ class Player implements Runnable {
             while (true) {
                 String input = in.readLine();
                 // wykonanie polecenia ruchu gracza
-                if (input.equals("move")) {
-                    int direction = Integer.parseInt(in.readLine());
-                    if (direction == 0) {
-                        manager.movePlayer(this, x - 1, y - 1);
-                    } else if (direction == 1) {
-                        manager.movePlayer(this, x - 1, y);
-                    } else if (direction == 2) {
-                        manager.movePlayer(this, x - 1, y + 1);
-                    } else if (direction == 3) {
-                        manager.movePlayer(this, x, y - 1);
-                    } else if (direction == 4) {
-                        manager.movePlayer(this, x, y + 1);
-                    } else if (direction == 5) {
-                        manager.movePlayer(this, x + 1, y - 1);
-                    } else if (direction == 6) {
-                        manager.movePlayer(this, x + 1, y);
-                    } else if (direction == 7) {
-                        manager.movePlayer(this, x + 1, y + 1);
+                switch (input) {
+                    case "move" -> {
+                        int direction = Integer.parseInt(in.readLine());
+                        if (direction == 0) {
+                            manager.movePlayer(this, x - 1, y - 1);
+                        } else if (direction == 1) {
+                            manager.movePlayer(this, x - 1, y);
+                        } else if (direction == 2) {
+                            manager.movePlayer(this, x - 1, y + 1);
+                        } else if (direction == 3) {
+                            manager.movePlayer(this, x, y - 1);
+                        } else if (direction == 4) {
+                            manager.movePlayer(this, x, y + 1);
+                        } else if (direction == 5) {
+                            manager.movePlayer(this, x + 1, y - 1);
+                        } else if (direction == 6) {
+                            manager.movePlayer(this, x + 1, y);
+                        } else if (direction == 7) {
+                            manager.movePlayer(this, x + 1, y + 1);
+                        }
                     }
                     // wykonanie polecenia zapytania o otoczenie gracza
-                } else if (input.equals("see")) {
-                    int[][] surroundings = manager.getBoardState(x, y);
-                    for (int i = 0; i < 3; i++) {
-                        for (int j = 0; j < 3; j++) {
-                            out.println(surroundings[i][j]);
+                    case "see" -> {
+                        int[][] surroundings = manager.getBoardState(x, y);
+                        for (int i = 0; i < 3; i++) {
+                            for (int j = 0; j < 3; j++) {
+                                out.println(surroundings[i][j]);
+                            }
                         }
                     }
                     // wykonanie polecenia podniesienia skarbu
-                } else if (input.equals("take")) {
-                    manager.takeTreasure(this);
-                } else if (input.equals("notake")) {
-                    manager.notakeTreasure(this);
+                    case "take" -> manager.takeTreasure(this);
+                    case "notake" -> manager.notakeTreasure(this);
                 }
             }
         } catch (IOException e) {
