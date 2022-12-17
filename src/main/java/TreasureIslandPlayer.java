@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Arrays;
+
 public class TreasureIslandPlayer extends JFrame {
     private Socket socket;
     private BufferedReader in;
@@ -20,6 +20,7 @@ public class TreasureIslandPlayer extends JFrame {
     private JButton[] buttons;
     private JLabel treasureCounter;
     private String playerName;
+    private Timer timer;
 
     public TreasureIslandPlayer() {
         playerName = JOptionPane.showInputDialog(null, "Wpisz swoje imię:","Gra Wyspa Skarbów",JOptionPane.QUESTION_MESSAGE);
@@ -36,7 +37,7 @@ public class TreasureIslandPlayer extends JFrame {
             e.printStackTrace();
         }
         // utworzenie planszy wizualizującej stan gry
-        setTitle("Wyspa skarbów - Gracz");
+        setTitle("Wyspa skarbów - Gracz " + playerName);
         setSize(500, 500);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         treasureCounter = new JLabel("Ilość skarbów: 0");
@@ -90,7 +91,6 @@ public class TreasureIslandPlayer extends JFrame {
                             board[i][j].setText(text);
                         }
                     }
-                    System.out.println(Arrays.deepToString(surroundings));
                 }
             });
             buttonsPanel.add(buttons[i]);
@@ -100,6 +100,37 @@ public class TreasureIslandPlayer extends JFrame {
         setVisible(true);
         Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
         setLocation(dim.width/2-this.getSize().width/2, dim.height/2-this.getSize().height/2);
+        timer = new Timer(200, new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                refreshBoard();
+            }
+        });
+        timer.start();
+    }
+
+    private void refreshBoard() {
+        int[][] surroundings = see();
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                String text;
+                if (i == 1 && j == 1) {
+                    text = " P ";
+                }
+                else if (surroundings[i][j] == 0) {
+                    text = " ";
+                } else if (surroundings[i][j] == 1) {
+                    text = " $ ";
+                } else if (surroundings[i][j] == -1) {
+                    text = " X ";
+                } else if (surroundings[i][j] == 2){
+                    text = " P ";
+                }
+                else {
+                    text = "    $/P ";
+                }
+                board[i][j].setText(text);
+            }
+        }
     }
 
     public void move(int direction) {
@@ -165,16 +196,16 @@ public class TreasureIslandPlayer extends JFrame {
             // wysłanie polecenia podniesienia skarbu
             out.println("take");
             treasures++;
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             treasureCounter.setText("Ilość skarbów: " + treasures);
         } else {
             // wysłanie polecenia niepodniesienia skarbu
             out.println("notake");
         }
-    }
-    public void take() {
-        // wysłanie polecenia podniesienia skarbu
-        out.println("take");
-        treasures++;
     }
 
     public void endGame() {

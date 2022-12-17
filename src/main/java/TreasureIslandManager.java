@@ -13,13 +13,12 @@ public class TreasureIslandManager extends JFrame {
     public JLabel[][] board;
     public int[][] boardState;
     public ArrayList<Player> players;
-    private ArrayList<Thread> playerThreads;
+    private final ArrayList<Thread> playerThreads;
     private ServerSocket serverSocket;
-    private JPanel playerListPanel;
-    private JPanel boardPanel;
+    private final JPanel playerListPanel;
 
     public TreasureIslandManager(int width, int height) {
-        boardPanel = new JPanel();
+        JPanel boardPanel = new JPanel();
         board = new JLabel[width][height];
         boardPanel.setLayout(new GridLayout(width, height));
         add(boardPanel);
@@ -93,8 +92,7 @@ public class TreasureIslandManager extends JFrame {
     public void updatePlayer(Player player) {
         // find the label for the player
         for (Component component : playerListPanel.getComponents()) {
-            if (component instanceof JLabel) {
-                JLabel playerLabel = (JLabel) component;
+            if (component instanceof JLabel playerLabel) {
                 if (playerLabel.getText().startsWith(player.getName())) {
                     // update the label with the player's new score
                     playerLabel.setText(player.getName() + ": " + player.getTreasures() + " skarbów");
@@ -175,12 +173,12 @@ public class TreasureIslandManager extends JFrame {
 }
 
 class Player implements Runnable {
-    private Socket socket;
-    private TreasureIslandManager manager;
+    private final Socket socket;
+    private final TreasureIslandManager manager;
     private int x;
     private int y;
     private int treasures;
-    private String name;
+    private final String name;
 
     public Player(Socket socket, TreasureIslandManager manager) {
         this.socket = socket;
@@ -189,11 +187,12 @@ class Player implements Runnable {
         Random rand = new Random();
         x = rand.nextInt(manager.board.length);
         y = rand.nextInt(manager.board[0].length);
-        while (manager.boardState[x][y] == -1) {
+        while (manager.boardState[x][y] == -1 || manager.boardState[x][y] == 2 || manager.boardState[x][y] == 1) {
             x = rand.nextInt(manager.board.length);
             y = rand.nextInt(manager.board[0].length);
         }
         // aktualizacja stanu planszy i ustawienie imienia gracza
+        manager.boardState[x][y] = 2;
         manager.board[x][y].setText("      P ");
         try {
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -271,7 +270,6 @@ class Player implements Runnable {
                 } else if (input.equals("notake")) {
                     manager.notakeTreasure(this);
                 }
-
             }
         } catch (IOException e) {
             e.printStackTrace();
