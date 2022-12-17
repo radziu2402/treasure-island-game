@@ -1,33 +1,45 @@
+package Client;
+
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Random;
 
 public class TreasureIslandPlayer extends JFrame {
-    private Socket socket;
+    private Socket socketOut;
+    private ServerSocket socket;
+    private Socket socketIn;
     private BufferedReader in;
     private PrintWriter out;
     private int treasures;
     private final JLabel[][] board;
     private final JLabel treasureCounter;
+    private int port;
 
     public TreasureIslandPlayer() {
         String playerName = JOptionPane.showInputDialog(null, "Wpisz swoje imię:", "Gra Wyspa Skarbów", JOptionPane.QUESTION_MESSAGE);
         if(playerName == null){
             System.exit(0);
         }
+        String portString = JOptionPane.showInputDialog(null, "Wpisz port:", "Gra Wyspa Skarbów", JOptionPane.QUESTION_MESSAGE);
+        if(portString == null){
+            System.exit(0);
+        }
+        port = Integer.parseInt(portString);
         // nawiązanie połączenia z zarządcą gry
         try {
-            socket = new Socket("localhost", 8888);
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            out = new PrintWriter(socket.getOutputStream(), true);
+            socketOut = new Socket("localhost", 8888);
+            out = new PrintWriter(socketOut.getOutputStream(), true);
             out.println(playerName);
+            out.println(port);
+            socket = new ServerSocket(port);
+            socketIn = socket.accept();
+            in = new BufferedReader(new InputStreamReader(socketIn.getInputStream()));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -61,6 +73,7 @@ public class TreasureIslandPlayer extends JFrame {
         buttons[7] = new JButton("↘");
 
         JPanel buttonsPanel = new JPanel();
+        buttonsPanel.setMaximumSize(new Dimension(500,200));
         buttonsPanel.setLayout(new GridLayout(1, 8));
         for (int i = 0; i < 8; i++) {
             final int direction = i;
@@ -93,11 +106,7 @@ public class TreasureIslandPlayer extends JFrame {
         setVisible(true);
         Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
         setLocation(dim.width/2-this.getSize().width/2, dim.height/2-this.getSize().height/2);
-        Timer timer = new Timer(100, new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                refreshBoard();
-            }
-        });
+        Timer timer = new Timer(100, e -> refreshBoard());
         timer.start();
     }
 
@@ -207,6 +216,7 @@ public class TreasureIslandPlayer extends JFrame {
     public void endGame() {
         // zakończenie gry
         try {
+            socketOut.close();
             socket.close();
         } catch (IOException e) {
             e.printStackTrace();

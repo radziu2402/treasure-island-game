@@ -1,3 +1,5 @@
+package Manager;
+
 import javax.swing.*;
 import java.awt.*;
 import java.io.BufferedReader;
@@ -71,7 +73,6 @@ public class TreasureIslandManager extends JFrame {
                 playerThreads.add(playerThread);
                 addPlayer(player);
                 System.out.println("Zarządca: Gracz dołączył!");
-
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -175,11 +176,13 @@ public class TreasureIslandManager extends JFrame {
 
 class Player implements Runnable {
     private final Socket socket;
+    private Socket socketOut;
     private final TreasureIslandManager manager;
     private int x;
     private int y;
     private int treasures;
     private final String name;
+    private int port;
 
     public Player(Socket socket, TreasureIslandManager manager) {
         this.socket = socket;
@@ -198,6 +201,7 @@ class Player implements Runnable {
         try {
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             name = in.readLine();
+            port = Integer.parseInt(in.readLine());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -233,8 +237,9 @@ class Player implements Runnable {
     @Override
     public void run() {
         try {
+            socketOut = new Socket("localhost",port);
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            PrintWriter out = new PrintWriter(socketOut.getOutputStream(), true);
             while (true) {
                 String input = in.readLine();
                 // wykonanie polecenia ruchu gracza
