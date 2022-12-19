@@ -156,6 +156,8 @@ public class TreasureIslandManager extends JFrame {
 
     }
 
+
+
     public void endGame() {
         // zatrzymanie wątków graczy i zamknięcie gniazda serwera
         for (Thread playerThread : playerThreads) {
@@ -198,6 +200,7 @@ class Player implements Runnable {
         // aktualizacja stanu planszy i ustawienie imienia gracza
         manager.boardState[x][y] = 2;
         manager.board[x][y].setText("      P ");
+        System.out.println("x=" + x +"   y= " + y);
         try {
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             name = in.readLine();
@@ -276,6 +279,10 @@ class Player implements Runnable {
                     // wykonanie polecenia podniesienia skarbu
                     case "take" -> manager.takeTreasure(this);
                     case "notake" -> manager.notakeTreasure(this);
+                    case "getpos" -> {
+                        out.println(x);
+                        out.println(y);
+                    }
                 }
             }
         } catch (IOException e) {
