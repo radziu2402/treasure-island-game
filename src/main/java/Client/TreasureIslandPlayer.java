@@ -8,20 +8,22 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class TreasureIslandPlayer extends JFrame {
-    private Socket socketOut;
-    private ServerSocket socket;
-    private Socket socketIn;
-    private BufferedReader in;
-    private PrintWriter out;
+    private final Socket socketOut;
+    private final ServerSocket socket;
+    private final Socket socketIn;
+    private final BufferedReader in;
+    private final PrintWriter out;
     private static int x;
     private static int y;
     private int treasures;
     private final JLabel[][] board;
     private final JLabel treasureCounter;
-    private int port;
+    private final int port;
 
     public TreasureIslandPlayer() {
         String playerName = JOptionPane.showInputDialog(null, "Wpisz swoje imię:", "Gra Wyspa Skarbów", JOptionPane.QUESTION_MESSAGE);
@@ -65,32 +67,41 @@ public class TreasureIslandPlayer extends JFrame {
             }
         }
         add(boardPanel);
-        // utworzenie przycisków do poruszania się gracza
-        JButton[] buttons = new JButton[8];
-        buttons[0] = new JButton("↖");
-        buttons[1] = new JButton("↑");
-        buttons[2] = new JButton("↗");
-        buttons[3] = new JButton("←");
-        buttons[4] = new JButton("→");
-        buttons[5] = new JButton("↙");
-        buttons[6] = new JButton("↓");
-        buttons[7] = new JButton("↘");
-
-        JPanel buttonsPanel = new JPanel();
-        buttonsPanel.setMaximumSize(new Dimension(500,200));
-        buttonsPanel.setLayout(new GridLayout(1, 8));
         getPosition();
         setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
         setVisible(true);
         Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
         setLocation(dim.width/2-this.getSize().width/2, dim.height/2-this.getSize().height/2);
-//       Timer timer = new Timer(100, e -> refreshBoard());
-//       timer.start();
-        //for (int i = 0; i < 8; i++) {
-
-        //buttons[i].addActionListener(e -> {
+        int[][] surroundin = see();
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                String text;
+                if (i == 1 && j == 1) {
+                    text = " P ";
+                } else if (surroundin[i][j] == 0) {
+                    text = " ";
+                } else if (surroundin[i][j] == 1) {
+                    text = " $ ";
+                } else if (surroundin[i][j] == -1) {
+                    text = " X ";
+                } else if (surroundin[i][j] == 2) {
+                    text = " P ";
+                } else {
+                    text = "    $/P ";
+                }
+                if(i+x-1 > -1 && i+x-1 < 10 && j+y-1 >-1 && j+y-1 < 10) {
+                    board[i + x - 1][j + y - 1].setText(text);
+                    board[i + x - 1][j + y - 1].setBackground(Color.yellow);
+                }
+            }
+        }
         while(true) {
-                    int direction = (int)Math.floor(Math.random()*(7-0+1)+0);
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+                    int direction = chooseDirection();
                     move(direction);
                     getPosition();
                     // sprawdzenie czy gracz zebrał już 5 skarbów
@@ -120,44 +131,50 @@ public class TreasureIslandPlayer extends JFrame {
                             }
                         }
                     }
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
-                    // }
-                    //});
-                    //buttonsPanel.add(buttons[i]);
-                }
-        //add(buttonsPanel);
-    }
 
-    private void refreshBoard() {
+        }
+    }
+    private int direct(int i, int j){
+        if (i == 0 && j == 0) {
+            return 0;
+        } else if (i == 0 && j == 1) {
+            return 1;
+        } else if (i == 0 && j == 2) {
+            return 2;
+        } else if (i == 1 && j == 0) {
+            return 3;
+        } else if (i == 1 && j == 2) {
+            return 4;
+        } else if (i == 2 && j == 0) {
+            return 5;
+        } else if (i == 2 && j == 1) {
+            return 6;
+        } else if (i == 2 && j == 2) {
+            return 7;
+        }
+        return 0;
+    }
+    private int chooseDirection() {
         int[][] surroundings = see();
+        //szuka skarbu
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
-                String text;
-                if (i == 1 && j == 1) {
-                    text = " P ";
-                }
-                else if (surroundings[i][j] == 0) {
-                    text = " ";
-                } else if (surroundings[i][j] == 1) {
-                    text = " $ ";
-                } else if (surroundings[i][j] == -1) {
-                    text = " X ";
-                } else if (surroundings[i][j] == 2){
-                    text = " P ";
-                }
-                else {
-                    text = "    $/P ";
-                }
-                if(i+x-1 > -1 && i+x-1 < 10 && j+y-1 >-1 && j+y-1 < 10) {
-                    board[i + x - 1][j + y - 1].setText(text);
-                    board[i + x - 1][j + y - 1].setBackground(Color.yellow);
+                if (surroundings[i][j] == 1) {
+                    return direct(i,j);
                 }
             }
         }
+        //szuka pustego pola
+        List<Integer> integers = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (surroundings[i][j] == 0) {
+                    integers.add(direct(i,j));
+                }
+            }
+        }
+        Random rand = new Random();
+        return integers.get(rand.nextInt(integers.size()));
     }
 
     private void move(int direction) {
@@ -195,7 +212,6 @@ public class TreasureIslandPlayer extends JFrame {
                 }
             }
         }
-
     }
     private int[][] see() {
         // wysłanie polecenia zapytania o otoczenie
@@ -217,12 +233,6 @@ public class TreasureIslandPlayer extends JFrame {
         Random rand = new Random();
         int delay = rand.nextInt(6) + 1;
 
-//        int choice = JOptionPane.showConfirmDialog(
-//                this,
-//                "Czy chcesz podnieść skarb? Czas:" + delay + " s",
-//                "Podjęcie decyzji",
-//                JOptionPane.YES_NO_OPTION);
-//        if (choice == JOptionPane.YES_OPTION) {
         if (delay < 7 ) {
             // wysłanie polecenia podniesienia skarbu
             out.println("take");
@@ -244,7 +254,6 @@ public class TreasureIslandPlayer extends JFrame {
         try {
             socketOut.close();
             socket.close();
-            System.exit(0);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -264,28 +273,5 @@ public class TreasureIslandPlayer extends JFrame {
 
     public static void main(String[] args) {
         TreasureIslandPlayer player = new TreasureIslandPlayer();
-        int[][] surroundings = player.see();
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                    String text;
-                    if (i == 1 && j == 1) {
-                        text = " P ";
-                    } else if (surroundings[i][j] == 0) {
-                        text = " ";
-                    } else if (surroundings[i][j] == 1) {
-                        text = " $ ";
-                    } else if (surroundings[i][j] == -1) {
-                        text = " X ";
-                    } else if (surroundings[i][j] == 2) {
-                        text = " P ";
-                    } else {
-                        text = "    $/P ";
-                    }
-                    if(i+x-1 > -1 && i+x-1 < 10 && j+y-1 >-1 && j+y-1 < 10) {
-                        player.board[i + x - 1][j + y - 1].setText(text);
-                        player.board[i + x - 1][j + y - 1].setBackground(Color.yellow);
-                    }
-            }
-        }
   }
 }

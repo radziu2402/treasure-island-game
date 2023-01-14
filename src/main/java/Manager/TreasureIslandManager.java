@@ -150,7 +150,6 @@ public class TreasureIslandManager extends JFrame {
         updatePlayer(player);
         if (player.getTreasures() >= 5) {
             endGame();
-            System.exit(0);
         }
         System.out.println("Zarządca: Gracz " + player.getName() + " podniósł skarb!");
 
@@ -184,7 +183,7 @@ class Player implements Runnable {
     private int y;
     private int treasures;
     private final String name;
-    private int port;
+    private final int port;
 
     public Player(Socket socket, TreasureIslandManager manager) {
         this.socket = socket;
